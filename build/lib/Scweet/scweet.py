@@ -6,14 +6,14 @@ from time import sleep
 import random
 import pandas as pd
 
-from .utils import init_driver, get_last_date_from_csv, log_search_page, keep_scroling, dowload_images
+from .utils import init_driver, get_last_date_from_csv, log_search_page, keep_scroling, download_images
 
 
 
 def scrape(since, until=None, words=None, to_account=None, from_account=None, mention_account=None, interval=5, lang=None,
           headless=True, limit=float("inf"), display_type="Top", resume=False, proxy=None, hashtag=None, 
           show_images=False, save_images=False, save_dir="outputs", filter_replies=False, proximity=False, 
-          geocode=None, minreplies=None, minlikes=None, minretweets=None):
+          geocode=None, minreplies=None, minlikes=None, minretweets=None, driver=None):
     """
     scrape data from twitter using requests, starting from <since> until <until>. The program make a search between each <since> and <until_local>
     until it reaches the <until> date if it's given, else it stops at the actual date.
@@ -67,8 +67,8 @@ def scrape(since, until=None, words=None, to_account=None, from_account=None, me
     # show images during scraping (for saving purpose)
     if save_images == True:
         show_images = True
-    # initiate the driver
-    driver = init_driver(headless, proxy, show_images)
+    # initiate the driver; nk- removed as per https://github.com/Altimis/Scweet/issues/163#issuecomment-1528822879
+    # driver = init_driver(headless, proxy, show_images)
     # resume scraping from previous work
     if resume:
         since = str(get_last_date_from_csv(path))[:10]
@@ -135,7 +135,7 @@ def scrape(since, until=None, words=None, to_account=None, from_account=None, me
         if not os.path.exists(save_images_dir):
             os.makedirs(save_images_dir)
 
-        dowload_images(data["Image link"], save_images_dir)
+        download_images(data["Image link"], save_images_dir)
 
     # close the web driver
     driver.close()

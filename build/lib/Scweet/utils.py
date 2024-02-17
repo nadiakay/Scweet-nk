@@ -4,9 +4,11 @@ import re
 from time import sleep
 import random
 import chromedriver_autoinstaller
+import geckodriver_autoinstaller
 from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
 import datetime
 import pandas as pd
 import platform
@@ -29,49 +31,50 @@ def get_data(card, save_images=False, save_dir=None):
     image_links = []
 
     try:
-        username = card.find_element_by_xpath('.//span').text
+        username = card.find_element(by=By.XPATH, value='.//span').text
     except:
         return
 
     try:
-        handle = card.find_element_by_xpath('.//span[contains(text(), "@")]').text
+        handle = card.find_element(by=By.XPATH, value='.//span[contains(text(), "@")]').text
     except:
         return
 
     try:
-        postdate = card.find_element_by_xpath('.//time').get_attribute('datetime')
+        postdate = card.find_element(by=By.XPATH, value='.//time').get_attribute('datetime')
     except:
         return
 
     try:
-        text = card.find_element_by_xpath('.//div[2]/div[2]/div[1]').text
+        # nk- changed as per https://github.com/Altimis/Scweet/issues/109#issuecomment-1463109010
+        text = card.find_element(by=By.XPATH, value='.//div[@data-testid="tweetText"]').text
     except:
         text = ""
 
     try:
-        embedded = card.find_element_by_xpath('.//div[2]/div[2]/div[2]').text
+        embedded = card.find_element(by=By.XPATH, value='.//div[2]/div[2]/div[2]').text
     except:
         embedded = ""
 
     # text = comment + embedded
 
     try:
-        reply_cnt = card.find_element_by_xpath('.//div[@data-testid="reply"]').text
+        reply_cnt = card.find_element(by=By.XPATH, value='.//div[@data-testid="reply"]').text
     except:
         reply_cnt = 0
 
     try:
-        retweet_cnt = card.find_element_by_xpath('.//div[@data-testid="retweet"]').text
+        retweet_cnt = card.find_element(by=By.XPATH, value='.//div[@data-testid="retweet"]').text
     except:
         retweet_cnt = 0
 
     try:
-        like_cnt = card.find_element_by_xpath('.//div[@data-testid="like"]').text
+        like_cnt = card.find_element(by=By.XPATH, value='.//div[@data-testid="like"]').text
     except:
         like_cnt = 0
 
     try:
-        elements = card.find_elements_by_xpath('.//div[2]/div[2]//img[contains(@src, "https://pbs.twimg.com/")]')
+        elements = card.find_elements(by=By.XPATH, value='.//div[2]/div[2]//img[contains(@src, "https://pbs.twimg.com/")]')
         for element in elements:
             image_links.append(element.get_attribute('src'))
     except:
@@ -83,7 +86,7 @@ def get_data(card, save_images=False, save_dir=None):
     # handle promoted tweets
 
     try:
-        promoted = card.find_element_by_xpath('.//div[2]/div[2]/[last()]//span').text == "Promoted"
+        promoted = card.find_element(by=By.XPATH, value='.//div[2]/div[2]/[last()]//span').text == "Promoted"
     except:
         promoted = False
     if promoted:
@@ -91,7 +94,7 @@ def get_data(card, save_images=False, save_dir=None):
 
     # get a string of all emojis contained in the tweet
     try:
-        emoji_tags = card.find_elements_by_xpath('.//img[contains(@src, "emoji")]')
+        emoji_tags = card.find_elements(by=By.XPATH, value='.//img[contains(@src, "emoji")]')
     except:
         return
     emoji_list = []
@@ -107,7 +110,7 @@ def get_data(card, save_images=False, save_dir=None):
 
     # tweet url
     try:
-        element = card.find_element_by_xpath('.//a[contains(@href, "/status/")]')
+        element = card.find_element(by=By.XPATH, value='.//a[contains(@href, "/status/")]')
         tweet_url = element.get_attribute('href')
     except:
         return
@@ -117,15 +120,18 @@ def get_data(card, save_images=False, save_dir=None):
     return tweet
 
 
-def init_driver(headless=True, proxy=None, show_images=False, option=None):
-    """ initiate a chromedriver instance 
+def init_driver(headless=True, proxy=None, show_images=False, option=None, firefox=False, env=None):
+    """ initiate a chromedriver or firefoxdriver instance
         --option : other option to add (str)
     """
 
-    # create instance of web driver
-    chromedriver_path = chromedriver_autoinstaller.install()
-    # options
-    options = Options()
+    if firefox:
+        options = FirefoxOptions()
+        driver_path = geckodriver_autoinstaller.install()
+    else:
+        options = ChromeOptions()
+        driver_path = chromedriver_autoinstaller.install()
+
     if headless is True:
         print("Scraping on headless mode.")
         options.add_argument('--disable-gpu')
@@ -136,12 +142,17 @@ def init_driver(headless=True, proxy=None, show_images=False, option=None):
     if proxy is not None:
         options.add_argument('--proxy-server=%s' % proxy)
         print("using proxy : ", proxy)
-    if show_images == False:
+    if show_images == False and firefox == False:
         prefs = {"profile.managed_default_content_settings.images": 2}
         options.add_experimental_option("prefs", prefs)
     if option is not None:
         options.add_argument(option)
-    driver = webdriver.Chrome(options=options, executable_path=chromedriver_path)
+
+    if firefox:
+        driver = webdriver.Firefox(options=options, executable_path=driver_path)
+    else:
+        driver = webdriver.Chrome(options=options, executable_path=driver_path)
+
     driver.set_page_load_timeout(100)
     return driver
 
@@ -179,7 +190,7 @@ def log_search_page(driver, since, until_local, lang, display_type, words, to_ac
     else:
         display_type = ""
 
-    # filter replies 
+    # filter replies
     if filter_replies == True:
         filter_replies = "%20-filter%3Areplies"
     else:
@@ -235,7 +246,7 @@ def log_in(driver, env, timeout=20, wait=4):
     sleep(random.uniform(wait, wait + 1))
 
     # enter email
-    email_el = driver.find_element_by_xpath(email_xpath)
+    email_el = driver.find_element(by=By.XPATH, value=email_xpath)
     sleep(random.uniform(wait, wait + 1))
     email_el.send_keys(email)
     sleep(random.uniform(wait, wait + 1))
@@ -243,14 +254,14 @@ def log_in(driver, env, timeout=20, wait=4):
     sleep(random.uniform(wait, wait + 1))
     # in case twitter spotted unusual login activity : enter your username
     if check_exists_by_xpath(username_xpath, driver):
-        username_el = driver.find_element_by_xpath(username_xpath)
+        username_el = driver.find_element(by=By.XPATH, value=username_xpath)
         sleep(random.uniform(wait, wait + 1))
         username_el.send_keys(username)
         sleep(random.uniform(wait, wait + 1))
         username_el.send_keys(Keys.RETURN)
         sleep(random.uniform(wait, wait + 1))
     # enter password
-    password_el = driver.find_element_by_xpath(password_xpath)
+    password_el = driver.find_element(by=By.XPATH, value=password_xpath)
     password_el.send_keys(password)
     sleep(random.uniform(wait, wait + 1))
     password_el.send_keys(Keys.RETURN)
@@ -270,7 +281,7 @@ def keep_scroling(driver, data, writer, tweet_ids, scrolling, tweet_parsed, limi
     while scrolling and tweet_parsed < limit:
         sleep(random.uniform(0.5, 1.5))
         # get the card of tweets
-        page_cards = driver.find_elements_by_xpath('//article[@data-testid="tweet"]')  # changed div by article
+        page_cards = driver.find_elements(by=By.XPATH, value='//article[@data-testid="tweet"]')  # changed div by article
         for card in page_cards:
             tweet = get_data(card, save_images, save_images_dir)
             if tweet:
@@ -311,7 +322,7 @@ def get_users_follow(users, headless, env, follow=None, verbose=1, wait=2, limit
     """ get the following or followers of a list of users """
 
     # initiate the driver
-    driver = init_driver(headless=headless)
+    driver = init_driver(headless=headless, env=env, firefox=True)
     sleep(wait)
     # log in (the .env file should contain the username and password)
     # driver.get('https://www.twitter.com/login')
@@ -331,7 +342,7 @@ def get_users_follow(users, headless, env, follow=None, verbose=1, wait=2, limit
             sleep(wait)
             log_in(driver, env)
             sleep(wait)
-        # case 2 
+        # case 2
         if check_exists_by_xpath('//input[@name="session[username_or_email]"]', driver):
             print("Login failed. Retry...")
             sleep(wait)
@@ -349,12 +360,12 @@ def get_users_follow(users, headless, env, follow=None, verbose=1, wait=2, limit
         while scrolling and not is_limit:
             # get the card of following or followers
             # this is the primaryColumn attribute that contains both followings and followers
-            primaryColumn = driver.find_element_by_xpath('//div[contains(@data-testid,"primaryColumn")]')
+            primaryColumn = driver.find_element(by=By.XPATH, value='//div[contains(@data-testid,"primaryColumn")]')
             # extract only the Usercell
-            page_cards = primaryColumn.find_elements_by_xpath('//div[contains(@data-testid,"UserCell")]')
+            page_cards = primaryColumn.find_elements(by=By.XPATH, value='//div[contains(@data-testid,"UserCell")]')
             for card in page_cards:
                 # get the following or followers element
-                element = card.find_element_by_xpath('.//div[1]/div[1]/div[1]//a[1]')
+                element = card.find_element(by=By.XPATH, value='.//div[1]/div[1]/div[1]//a[1]')
                 follow_elem = element.get_attribute('href')
                 # append to the list
                 follow_id = str(follow_elem)
@@ -402,13 +413,16 @@ def check_exists_by_link_text(text, driver):
 def check_exists_by_xpath(xpath, driver):
     timeout = 3
     try:
-        driver.find_element_by_xpath(xpath)
+        driver.find_element(by=By.XPATH, value=xpath)
     except NoSuchElementException:
         return False
     return True
 
-
-def dowload_images(urls, save_dir):
+# nk- name changed dowload_images > download_images
+def download_images(urls, save_dir):
     for i, url_v in enumerate(urls):
         for j, url in enumerate(url_v):
-            urllib.request.urlretrieve(url, save_dir + '/' + str(i + 1) + '_' + str(j + 1) + ".jpg")
+            #nk- changed image name to include original url
+            slug = url.split('/')[-1].split('?')[0].split('&')[0]
+            print('slug: ', slug)
+            urllib.request.urlretrieve(url, save_dir + '/' + slug + '_' + str(j + 1) + ".jpg")

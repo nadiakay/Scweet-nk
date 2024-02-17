@@ -1,4 +1,8 @@
+Changes made to reflect:
+https://github.com/Altimis/Scweet/issues/163#issuecomment-1528822879
+https://github.com/Altimis/Scweet/issues/109#issuecomment-1463109010
 
+Forked on Feb 16th 2024. Original readme:
 
 # A simple and unlimited Twitter scraper with python.
 

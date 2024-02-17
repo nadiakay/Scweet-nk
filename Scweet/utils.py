@@ -46,7 +46,8 @@ def get_data(card, save_images=False, save_dir=None):
         return
 
     try:
-        text = card.find_element(by=By.XPATH, value='.//div[2]/div[2]/div[1]').text
+        # nk- changed as per https://github.com/Altimis/Scweet/issues/109#issuecomment-1463109010
+        text = card.find_element(by=By.XPATH, value='.//div[@data-testid="tweetText"]').text
     except:
         text = ""
 
@@ -417,8 +418,11 @@ def check_exists_by_xpath(xpath, driver):
         return False
     return True
 
-
-def dowload_images(urls, save_dir):
+# nk- name changed dowload_images > download_images
+def download_images(urls, save_dir):
     for i, url_v in enumerate(urls):
         for j, url in enumerate(url_v):
-            urllib.request.urlretrieve(url, save_dir + '/' + str(i + 1) + '_' + str(j + 1) + ".jpg")
+            #nk- changed image name to include original url
+            slug = url.split('/')[-1].split('?')[0].split('&')[0]
+            print('slug: ', slug)
+            urllib.request.urlretrieve(url, save_dir + '/' + slug + '_' + str(j + 1) + ".jpg")
