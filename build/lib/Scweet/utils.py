@@ -244,7 +244,7 @@ def log_in(driver, env, timeout=20, wait=4):
     username_xpath = '//input[@data-testid="ocfEnterTextTextInput"]'
 
     sleep(random.uniform(wait, wait + 1))
-    
+
     # enter email
     email_el = driver.find_element(by=By.XPATH, value=email_xpath)
     sleep(random.uniform(wait, wait + 1))
@@ -423,7 +423,7 @@ def download_images(urls, save_dir, timestamp):
     ts = 0
     for i, t in enumerate(timestamp):
         if ts == 0:
-            ts = t
+            ts = t[:10]
     for i, url_v in enumerate(urls):
         for j, url in enumerate(url_v):
             #nk- changed image name to include original url
