@@ -244,7 +244,7 @@ def log_in(driver, env, timeout=20, wait=4):
     username_xpath = '//input[@data-testid="ocfEnterTextTextInput"]'
 
     sleep(random.uniform(wait, wait + 1))
-
+    
     # enter email
     email_el = driver.find_element(by=By.XPATH, value=email_xpath)
     sleep(random.uniform(wait, wait + 1))
@@ -419,10 +419,14 @@ def check_exists_by_xpath(xpath, driver):
     return True
 
 # nk- name changed dowload_images > download_images
-def download_images(urls, save_dir):
+def download_images(urls, save_dir, timestamp):
+    ts = 0
+    for i, t in enumerate(timestamp):
+        if ts == 0:
+            ts = t
     for i, url_v in enumerate(urls):
         for j, url in enumerate(url_v):
             #nk- changed image name to include original url
             slug = url.split('/')[-1].split('?')[0].split('&')[0]
             print('slug: ', slug)
-            urllib.request.urlretrieve(url, save_dir + '/' + slug + '_' + str(j + 1) + ".jpg")
+            urllib.request.urlretrieve(url, save_dir + '/' + ts + '_' + slug + '_' + str(j + 1) + ".jpg")

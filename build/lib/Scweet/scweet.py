@@ -131,11 +131,11 @@ def scrape(since, until=None, words=None, to_account=None, from_account=None, me
     # save images
     if save_images==True:
         print("Saving images ...")
-        save_images_dir = "images"
+        save_images_dir = from_account + "_images"
         if not os.path.exists(save_images_dir):
             os.makedirs(save_images_dir)
 
-        download_images(data["Image link"], save_images_dir)
+        download_images(data["Image link"], save_images_dir, data["Timestamp"])
 
     # close the web driver
     driver.close()
